@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aether Loading</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="is-splash-window">
+  <main id="splash-root" class="splash-root" data-tauri-drag-region>
+    <div id="splash-pill" class="splash-pill" data-tauri-drag-region>
+      <svg class="yt-spinner" viewBox="0 0 32 32" aria-label="Loading">
+        <circle class="yt-track" cx="16" cy="16" r="11" fill="none" stroke-width="2.5" />
+        <circle class="yt-arc" cx="16" cy="16" r="11" fill="none" stroke="#4c7dff" stroke-width="2.5" stroke-linecap="round" />
+      </svg>
+      <span class="splash-status" id="splash-status">Connecting to the server</span>
+    </div>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="loader_api.js"></script>
+  <script src="splash.js"></script>
+</body>
+</html>

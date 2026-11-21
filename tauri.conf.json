@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Noname Loader",
+  "version": "1.0.0",
+  "identifier": "dev.noname.loader",
+  "build": {
+    "frontendDist": "./ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "splash",
+        "title": "Noname Loading",
+        "url": "splash.html",
+        "width": 360,
+        "height": 220,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": true,
+        "center": true,
+        "skipTaskbar": true
+      },
+      {
+        "label": "main",
+        "title": "Noname Loader",
+        "url": "index.html",
+        "width": 760,
+        "height": 446,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": true,
+        "center": true,
+        "visible": false
+      },
+      {
+        "label": "dock",
+        "title": "Aether Dock",
+        "url": "dock.html",
+        "width": 760,
+        "height": 48,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": true,
+        "visible": false,
+        "skipTaskbar": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.png"
+    ]
+  }
+}

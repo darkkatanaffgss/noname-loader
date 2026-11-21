@@ -1,0 +1,5 @@
+/target/
+/dist/
+/builds/
+gen/
+*.pdb

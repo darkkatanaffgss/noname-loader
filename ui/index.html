@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aether Loader</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="is-main-window">
+  <main id="main-root" class="main-root">
+    <section id="app-content" class="app-content">
+      <header class="topbar" data-tauri-drag-region>
+        <div class="topbar-left" data-tauri-drag-region>
+          <div class="brand-badge" data-tauri-drag-region>
+            <span id="brand-initials">AE</span>
+          </div>
+          <div class="brand-meta" data-tauri-drag-region>
+            <span class="brand-title" id="brand-title">Aether</span>
+            <span class="version-pill" id="brand-version">v2.4</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="btn-replay-splash" class="win-icon-btn" title="Replay Intro">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </button>
+          <button id="btn-minimize" class="win-icon-btn" title="Minimize">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+              <line x1="6" y1="12" x2="18" y2="12" />
+            </svg>
+          </button>
+          <button id="btn-close" class="win-icon-btn win-close" title="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="views-stage">
+        <!-- VIEW 1: GAMES -->
+        <section id="view-games" class="view is-active">
+          <div class="view-head">
+            <div>
+              <h1 class="view-title" data-i18n="gamesTitle">Библиотека</h1>
+              <p class="view-subtitle" data-i18n="gamesSubtitle">Выберите игру для просмотра обновлений и запуска</p>
+            </div>
+          </div>
+
+          <div id="games-list" class="games-list"></div>
+        </section>
+
+        <!-- VIEW 2: SETTINGS -->
+        <section id="view-settings" class="view">
+          <div class="view-head">
+            <div>
+              <h1 class="view-title" data-i18n="settingsTitle">Настройки</h1>
+              <p class="view-subtitle" data-i18n="settingsSubtitle">Язык, прозрачность стекла, анимации и пути запуска</p>
+            </div>
+          </div>
+
+          <div class="settings-grid">
+            <div class="glass-panel">
+              <div class="panel-label" data-i18n="langSection">Язык</div>
+              <div class="segmented" id="lang-switcher">
+                <button class="seg-btn" data-lang="ru">Русский</button>
+                <button class="seg-btn" data-lang="en">English</button>
+                <button class="seg-btn" data-lang="uk">Українська</button>
+              </div>
+
+              <div class="panel-label mt-14" data-i18n="splashSection">Прелоадер и анимации</div>
+              <div class="control-row">
+                <span class="control-name" data-i18n="splashDurationLabel">Загрузка</span>
+                <div class="segmented compact" id="splash-duration-switcher">
+                  <button class="seg-btn" data-ms="1000">1.0s</button>
+                  <button class="seg-btn" data-ms="1350">1.4s</button>
+                  <button class="seg-btn" data-ms="2100">2.1s</button>
+                </div>
+              </div>
+              <div class="control-row mt-8">
+                <span class="control-name" data-i18n="animSpeedLabel">Переходы</span>
+                <div class="segmented compact" id="anim-speed-switcher">
+                  <button class="seg-btn" data-speed="smooth" data-i18n="speedSmooth">Плавно</button>
+                  <button class="seg-btn" data-speed="snappy" data-i18n="speedSnappy">Быстро</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-panel">
+              <div class="panel-label" data-i18n="blurSection">Прозрачность и блюр</div>
+              <div class="slider-block">
+                <div class="slider-top">
+                  <span data-i18n="glassOpacityLabel">Затемнение стекла</span>
+                  <span class="slider-val" id="val-glass-opacity">40%</span>
+                </div>
+                <input type="range" id="range-glass-opacity" min="15" max="85" value="40" />
+              </div>
+
+              <div class="slider-block mt-10">
+                <div class="slider-top">
+                  <span data-i18n="cardBlurLabel">Блюр карточек игр</span>
+                  <span class="slider-val" id="val-card-blur">2px</span>
+                </div>
+                <input type="range" id="range-card-blur" min="0" max="8" step="0.5" value="2" />
+              </div>
+
+              <div class="panel-label mt-12" data-i18n="pathsSection">Пути запуска (URI / .EXE)</div>
+              <div id="settings-paths" class="paths-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 3: USER PROFILE & LICENSE KEY (opened from bottom-left avatar in dock) -->
+        <section id="view-profile" class="view">
+          <div class="view-head">
+            <div>
+              <h1 class="view-title" data-i18n="profileTitle">Профиль</h1>
+              <p class="view-subtitle" data-i18n="profileSubtitle">Настройка иконки, имени и ключа доступа</p>
+            </div>
+          </div>
+
+          <div class="settings-grid">
+            <div class="glass-panel">
+              <div class="panel-label" data-i18n="profileIdentity">Профиль и аватар</div>
+
+              <div class="profile-avatar-row">
+                <div class="profile-avatar-preview" id="profile-avatar-preview">
+                  <img id="profile-avatar-img" class="hidden" src="" alt="Avatar" />
+                  <svg id="profile-avatar-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="8.5" r="3.5" />
+                    <path d="M5 19.5c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5" />
+                  </svg>
+                </div>
+
+                <div class="profile-avatar-actions">
+                  <input type="file" id="profile-avatar-input" accept="image/*" class="hidden" />
+                  <button id="btn-upload-avatar" class="subview-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <span data-i18n="profileUploadBtn">Выбрать фото</span>
+                  </button>
+                  <button id="btn-reset-avatar" class="ghost-btn" data-i18n="profileResetBtn">Сбросить</button>
+                </div>
+              </div>
+
+              <div class="field-group mt-14">
+                <label class="field-label" data-i18n="profileNameLabel">Имя в нижней панели</label>
+                <input type="text" id="profile-name-input" class="glass-input" maxlength="24" placeholder="User" />
+              </div>
+            </div>
+
+            <div class="glass-panel profile-license-panel">
+              <div>
+                <div class="panel-label" data-i18n="profileLicenseLabel">Ключ доступа (License Key)</div>
+                <div class="field-group">
+                  <label class="field-label" data-i18n="profileKeyPrompt">Введите ключ активации</label>
+                  <input type="text" id="profile-key-input" class="glass-input" placeholder="AETHER-XXXX-XXXX" />
+                </div>
+
+                <button id="btn-verify-key" class="primary-btn mt-10">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+                  </svg>
+                  <span data-i18n="profileVerifyBtn">Активировать ключ</span>
+                </button>
+
+                <div id="profile-key-status" class="key-status-box mt-10 hidden"></div>
+              </div>
+
+              <div class="hwid-row">
+                <span class="hwid-label">HWID: <code id="profile-hwid-val">...</code></span>
+                <button id="btn-copy-hwid" class="open-folder-btn" data-i18n="profileCopyHwid">Копировать</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- GAME DETAILS MODAL WITH TOP BANNER & SCROLLABLE CHANGELOG BOX -->
+    <div id="game-modal" class="modal-backdrop" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-banner">
+          <div class="modal-banner-img" id="modal-banner-img"></div>
+          <div class="modal-banner-overlay"></div>
+
+          <button id="modal-close-btn" class="modal-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+
+          <div class="modal-game-id">
+            <img id="modal-mini-icon" class="modal-mini-icon" src="" alt="" />
+            <div>
+              <div class="modal-title-row">
+                <h2 id="modal-game-title">Counter-Strike 2</h2>
+                <span class="modal-version-badge" id="modal-game-version">Build 1.40.5</span>
+              </div>
+              <p class="modal-game-sub" id="modal-game-sub">Source 2</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-body">
+          <div class="modal-section-title" data-i18n="modalUpdatesTitle">Описание обновлений</div>
+          <div class="changelog-scroll-box" id="changelog-scroll-box">
+            <p class="modal-desc" id="modal-game-desc"></p>
+            <div id="modal-changelog-sections" class="changelog-sections"></div>
+          </div>
+
+          <div class="launch-progress-box hidden" id="launch-progress-box">
+            <div class="launch-status-line">
+              <span id="launch-status-text">Preparing...</span>
+              <span id="launch-percent">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="launch-progress-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <div class="modal-target-pill">
+            <span id="modal-target-label">steam://rungameid/730</span>
+          </div>
+          <button id="modal-start-btn" class="start-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="6 4 20 12 6 20 6 4" fill="currentColor" />
+            </svg>
+            <span data-i18n="modalStartBtn">START</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="loader_api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
