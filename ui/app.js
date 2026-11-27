@@ -45,7 +45,15 @@ const I18N = {
     profileVerifying: "Проверка...",
     profileCopyHwid: "Копировать",
     profileCopied: "Скопировано",
-    keyRequiredErr: "Сначала активируйте ключ в Профиле",
+    profileLogoutBtn: "Выйти / Сменить ключ",
+    loginTitle: "Авторизация клиента",
+    loginSubtitle: "Введите лицензионный ключ для доступа к библиотеке",
+    loginSubmitBtn: "Войти в клиент",
+    loginChecking: "Проверка ключа...",
+    loginSuccess: "Ключ подтвержден! Добро пожаловать",
+    loginHwidLabel: "Аппаратный ID (HWID):",
+    loginDemoHint: "Тестовый демо-ключ:",
+    keyRequiredErr: "Сначала активируйте ключ",
     modalUpdatesTitle: "Описание обновлений",
     modalStartBtn: "START",
     launchPrep: "Подготовка окружения...",
@@ -82,7 +90,15 @@ const I18N = {
     profileVerifying: "Checking...",
     profileCopyHwid: "Copy",
     profileCopied: "Copied",
-    keyRequiredErr: "Activate a valid key in Profile first",
+    profileLogoutBtn: "Sign Out / Change Key",
+    loginTitle: "Client Authorization",
+    loginSubtitle: "Enter your license access key to unlock the library",
+    loginSubmitBtn: "Sign In",
+    loginChecking: "Verifying key...",
+    loginSuccess: "Key verified! Welcome",
+    loginHwidLabel: "Hardware ID (HWID):",
+    loginDemoHint: "Demo test key:",
+    keyRequiredErr: "Activate a valid key first",
     modalUpdatesTitle: "Update Notes",
     modalStartBtn: "START",
     launchPrep: "Preparing environment...",
@@ -119,7 +135,15 @@ const I18N = {
     profileVerifying: "Перевірка...",
     profileCopyHwid: "Копіювати",
     profileCopied: "Скопійовано",
-    keyRequiredErr: "Спочатку активуйте ключ у Профілі",
+    profileLogoutBtn: "Вийти / Змінити ключ",
+    loginTitle: "Авторизація клієнта",
+    loginSubtitle: "Введіть ліцензійний ключ для доступу до бібліотеки",
+    loginSubmitBtn: "Увійти в клієнт",
+    loginChecking: "Перевірка ключа...",
+    loginSuccess: "Ключ підтверджено! Ласкаво просимо",
+    loginHwidLabel: "Апаратний ID (HWID):",
+    loginDemoHint: "Тестовий демо-ключ:",
+    keyRequiredErr: "Спочатку активуйте ключ",
     modalUpdatesTitle: "Опис оновлень",
     modalStartBtn: "START",
     launchPrep: "Підготовка середовища...",
@@ -147,7 +171,7 @@ const state = {
   sessionId: null,
   hwid: "NN-0000-0000-0000-0000",
   targets: Object.fromEntries(BASE_GAMES.map((g) => [g.id, g.defaultTarget])),
-  activeView: "games",
+  activeView: "login",
   selectedGameId: null,
   launching: false,
 };
@@ -170,15 +194,100 @@ function startHeartbeatLoop() {
         state.sessionId = null;
         saveState();
         clearInterval(heartbeatInterval);
-        const box = document.getElementById("profile-key-status");
-        if (box) {
-          box.classList.add("is-error");
-          box.textContent = `✕ Session revoked or terminated: ${res.message || "Key revoked"}`;
-          box.classList.remove("hidden");
+        if (tauriCore) {
+          tauriCore.invoke("set_dock_visible", { visible: false });
         }
+        const statusBox = document.getElementById("login-status-box");
+        if (statusBox) {
+          statusBox.textContent = `✕ Session terminated: ${res.message || "Key revoked"}`;
+          statusBox.className = "login-status-box";
+        }
+        switchView("login");
       }
     } catch (_) {}
   }, 25000);
+}
+
+function renderLoginView() {
+  const hwidEl = document.getElementById("login-hwid-val");
+  if (hwidEl) hwidEl.textContent = state.hwid;
+  const inputEl = document.getElementById("login-key-input");
+  if (inputEl && state.licenseKey && !inputEl.value) {
+    inputEl.value = state.licenseKey;
+  }
+}
+
+async function submitLogin(key) {
+  const dict = I18N[state.lang] || I18N.ru;
+  const btn = document.getElementById("btn-login-submit");
+  const spinner = document.getElementById("login-spinner");
+  const btnText = btn.querySelector("span");
+  const statusBox = document.getElementById("login-status-box");
+
+  const cleanKey = (key || "").trim().toUpperCase();
+  if (!cleanKey) {
+    statusBox.textContent = "✕ " + (dict.profileKeyPrompt || "Enter license key");
+    statusBox.className = "login-status-box";
+    return;
+  }
+
+  btn.disabled = true;
+  spinner.classList.remove("hidden");
+  btnText.textContent = dict.loginChecking;
+  statusBox.className = "login-status-box hidden";
+
+  try {
+    const res = await window.LoaderAPI.verifyKey(cleanKey);
+    if (res && res.valid) {
+      state.keyValid = true;
+      state.licenseKey = cleanKey;
+      state.sessionId = res.session_id || null;
+      saveState();
+
+      statusBox.textContent = "✓ " + (dict.loginSuccess || "Verified!");
+      statusBox.className = "login-status-box is-success";
+
+      await sleep(400);
+      switchView("games");
+      if (tauriCore) {
+        tauriCore.invoke("set_dock_visible", { visible: true });
+      }
+      startHeartbeatLoop();
+    } else {
+      state.keyValid = false;
+      state.sessionId = null;
+      saveState();
+      statusBox.textContent = "✕ " + (res?.message || "Invalid license key");
+      statusBox.className = "login-status-box";
+    }
+  } catch (err) {
+    state.keyValid = false;
+    statusBox.textContent = "✕ " + String(err);
+    statusBox.className = "login-status-box";
+  } finally {
+    btn.disabled = false;
+    spinner.classList.add("hidden");
+    btnText.textContent = dict.loginSubmitBtn;
+  }
+}
+
+function logout() {
+  state.keyValid = false;
+  state.sessionId = null;
+  state.licenseKey = "";
+  saveState();
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+  if (tauriCore) {
+    tauriCore.invoke("set_dock_visible", { visible: false });
+  }
+  const statusBox = document.getElementById("login-status-box");
+  if (statusBox) statusBox.className = "login-status-box hidden";
+  const input = document.getElementById("login-key-input");
+  if (input) input.value = "";
+  switchView("login");
 }
 
 function allGames() {
@@ -258,6 +367,7 @@ function applyTranslations() {
     const key = el.getAttribute("data-i18n");
     if (dict[key]) el.textContent = dict[key];
   });
+  renderLoginView();
   renderGames();
   renderSettingsControls();
   renderProfileView();
@@ -558,7 +668,12 @@ function switchView(viewName) {
   document.querySelectorAll(".view").forEach((v) => {
     v.classList.toggle("is-active", v.id === `view-${viewName}`);
   });
-  if (viewName === "profile") renderProfileView();
+  if (viewName === "login") {
+    renderLoginView();
+    if (tauriCore) tauriCore.invoke("set_dock_visible", { visible: false });
+  } else if (viewName === "profile") {
+    renderProfileView();
+  }
   pushDockSync();
 }
 
@@ -746,6 +861,60 @@ function bindEvents() {
       }, 1200);
     } catch (_) {}
   });
+
+  // Login Gate event handlers
+  const loginSubmitBtn = document.getElementById("btn-login-submit");
+  if (loginSubmitBtn) {
+    loginSubmitBtn.addEventListener("click", () => {
+      const input = document.getElementById("login-key-input");
+      submitLogin(input ? input.value : "");
+    });
+  }
+
+  const loginInput = document.getElementById("login-key-input");
+  if (loginInput) {
+    loginInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        submitLogin(loginInput.value);
+      }
+    });
+  }
+
+  const copyLoginHwid = document.getElementById("btn-login-copy-hwid");
+  if (copyLoginHwid) {
+    copyLoginHwid.addEventListener("click", async () => {
+      const dict = I18N[state.lang] || I18N.ru;
+      try {
+        await navigator.clipboard.writeText(state.hwid);
+        copyLoginHwid.textContent = dict.profileCopied;
+        setTimeout(() => {
+          copyLoginHwid.textContent = dict.profileCopyHwid;
+        }, 1200);
+      } catch (_) {}
+    });
+  }
+
+  const pasteBtn = document.getElementById("btn-login-paste");
+  if (pasteBtn && loginInput) {
+    pasteBtn.addEventListener("click", async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) loginInput.value = text.trim();
+      } catch (_) {}
+    });
+  }
+
+  const demoHint = document.querySelector(".login-demo-hint code");
+  if (demoHint && loginInput) {
+    demoHint.addEventListener("click", () => {
+      loginInput.value = demoHint.textContent.trim();
+    });
+  }
+
+  const logoutBtn = document.getElementById("btn-logout-key");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", logout);
+  }
 }
 
 function sleep(ms) {
@@ -773,9 +942,29 @@ async function init() {
   applyThemeVars();
   applyTranslations();
   bindEvents();
-  if (state.keyValid && state.sessionId) {
-    startHeartbeatLoop();
+
+  // If a valid key was previously saved, silently verify with server
+  if (state.licenseKey && state.keyValid) {
+    try {
+      const res = await window.LoaderAPI.verifyKey(state.licenseKey);
+      if (res && res.valid) {
+        state.keyValid = true;
+        state.sessionId = res.session_id || state.sessionId;
+        saveState();
+        switchView("games");
+        if (tauriCore) tauriCore.invoke("set_dock_visible", { visible: true });
+        startHeartbeatLoop();
+        return;
+      }
+    } catch (_) {}
   }
+
+  // Otherwise lock behind the login view
+  state.keyValid = false;
+  state.sessionId = null;
+  saveState();
+  switchView("login");
+  if (tauriCore) tauriCore.invoke("set_dock_visible", { visible: false });
 }
 
 document.addEventListener("DOMContentLoaded", init);

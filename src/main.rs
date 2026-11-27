@@ -208,14 +208,8 @@ fn transition_to_main(app: tauri::AppHandle) {
             }
         }
         IS_MAIN_VISIBLE.store(true, Ordering::SeqCst);
-        sync_dock_below_main(&app);
         let _ = main.show();
         let _ = main.set_focus();
-        if let Some(dock) = app.get_webview_window("dock") {
-            let _ = dock.show();
-            bring_window_no_activate(&dock);
-            bring_window_no_activate(&main);
-        }
         let _ = app.emit("main-enter", ());
     }
 }
@@ -245,6 +239,22 @@ fn replay_intro(app: tauri::AppHandle) {
 #[tauri::command]
 fn dock_switch_view(app: tauri::AppHandle, view: String) {
     let _ = app.emit("switch-view", view);
+}
+
+#[tauri::command]
+fn set_dock_visible(app: tauri::AppHandle, visible: bool) {
+    if let Some(dock) = app.get_webview_window("dock") {
+        if visible {
+            let _ = dock.show();
+            sync_dock_below_main(&app);
+            if let Some(main) = app.get_webview_window("main") {
+                bring_window_no_activate(&dock);
+                bring_window_no_activate(&main);
+            }
+        } else {
+            let _ = dock.hide();
+        }
+    }
 }
 
 #[tauri::command]
@@ -379,6 +389,7 @@ fn main() {
             transition_to_main,
             replay_intro,
             dock_switch_view,
+            set_dock_visible,
             sync_ui_state,
             launch_game,
             minimize_all,
