@@ -388,7 +388,10 @@ fn main() {
             api::api_check_server,
             api::api_http_request,
             api::api_download_module,
-            api::api_on_launch
+            api::api_on_launch,
+            api::api_security_check,
+            api::api_heartbeat,
+            api::api_authorize_launch
         ])
         .run(tauri::generate_context!())
         .expect("error while running Aether Loader");

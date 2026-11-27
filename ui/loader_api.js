@@ -63,7 +63,28 @@
 
     /** Get machine HWID from Rust backend. */
     async getHwid() {
-      return (await coreInvoke("api_get_hwid")) || "AE-LOCAL";
+      return (await coreInvoke("api_get_hwid")) || "NN-0000-0000-0000-0000";
+    },
+
+    /** Run native anti-debug & process integrity check. */
+    async checkSecurity() {
+      return coreInvoke("api_security_check");
+    },
+
+    /** Send session heartbeat to backend server. */
+    async heartbeat(sessionId, hwid) {
+      const url = window.AETHER_CONFIG?.api?.heartbeatUrl || "http://127.0.0.1:3840/api/v1/auth/heartbeat";
+      return coreInvoke("api_heartbeat", {
+        payload: { url, session_id: sessionId, hwid }
+      });
+    },
+
+    /** Request software launch authorization ticket. */
+    async authorizeLaunch(productId, sessionId, hwid, branch = "Stable") {
+      const url = window.AETHER_CONFIG?.api?.authorizeUrl || "http://127.0.0.1:3840/api/v1/software/authorize";
+      return coreInvoke("api_authorize_launch", {
+        payload: { url, session_id: sessionId, hwid, product_id: productId, branch }
+      });
     },
 
     /** Verify a license key via custom JS hook, `config.js` verifyKeyUrl, or Rust stub. */

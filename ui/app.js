@@ -144,12 +144,42 @@ const state = {
   userAvatar: "",
   licenseKey: "",
   keyValid: false,
-  hwid: "AE-LOCAL",
+  sessionId: null,
+  hwid: "NN-0000-0000-0000-0000",
   targets: Object.fromEntries(BASE_GAMES.map((g) => [g.id, g.defaultTarget])),
   activeView: "games",
   selectedGameId: null,
   launching: false,
 };
+
+let heartbeatInterval = null;
+
+function startHeartbeatLoop() {
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  if (!state.keyValid || !state.sessionId) return;
+
+  heartbeatInterval = setInterval(async () => {
+    if (!state.keyValid || !state.sessionId) {
+      clearInterval(heartbeatInterval);
+      return;
+    }
+    try {
+      const res = await window.LoaderAPI.heartbeat(state.sessionId, state.hwid);
+      if (res && res.active === false) {
+        state.keyValid = false;
+        state.sessionId = null;
+        saveState();
+        clearInterval(heartbeatInterval);
+        const box = document.getElementById("profile-key-status");
+        if (box) {
+          box.classList.add("is-error");
+          box.textContent = `✕ Session revoked or terminated: ${res.message || "Key revoked"}`;
+          box.classList.remove("hidden");
+        }
+      }
+    } catch (_) {}
+  }, 25000);
+}
 
 function allGames() {
   const extras = window.LoaderAPI ? window.LoaderAPI._getCustomGames() : [];
@@ -170,6 +200,7 @@ function saveState() {
         userAvatar: state.userAvatar,
         licenseKey: state.licenseKey,
         keyValid: state.keyValid,
+        sessionId: state.sessionId,
         targets: state.targets,
       })
     );
@@ -203,6 +234,7 @@ function loadSavedState() {
     if (typeof saved.userAvatar === "string") state.userAvatar = saved.userAvatar;
     if (typeof saved.licenseKey === "string") state.licenseKey = saved.licenseKey;
     if (typeof saved.keyValid === "boolean") state.keyValid = saved.keyValid;
+    if (typeof saved.sessionId === "string") state.sessionId = saved.sessionId;
     if (saved.targets) state.targets = { ...state.targets, ...saved.targets };
   } catch (_) {}
 }
@@ -405,10 +437,51 @@ async function runLaunchSequence() {
     fillEl.style.width = `${pct}%`;
   };
 
+  // 1. Native anti-debug and memory integrity check
+  try {
+    const sec = await window.LoaderAPI.checkSecurity();
+    if (sec && !sec.safe) {
+      progBox.classList.remove("hidden");
+      setProgress(0, `Security Violation: ${sec.threat || sec.details}`);
+      if (CFG.api?.telemetryUrl) {
+        window.LoaderAPI.http(CFG.api.telemetryUrl, {
+          method: "POST",
+          body: {
+            eventType: "anti_debug_triggered",
+            hwid: state.hwid,
+            key: state.licenseKey,
+            details: sec.threat || sec.details,
+          },
+        }).catch(() => {});
+      }
+      state.launching = false;
+      startBtn.disabled = false;
+      return;
+    }
+  } catch (_) {}
+
+  // 2. Entitlement verification check
   if (CFG.api?.requireKeyBeforeLaunch && !state.keyValid) {
     progBox.classList.remove("hidden");
     setProgress(0, dict.keyRequiredErr);
+    state.launching = false;
+    startBtn.disabled = false;
     return;
+  }
+
+  // 3. Server-side launch authorization ticket
+  if (state.sessionId && CFG.api?.authorizeUrl) {
+    progBox.classList.remove("hidden");
+    setProgress(15, "Authorizing session...");
+    try {
+      const authRes = await window.LoaderAPI.authorizeLaunch(game.id, state.sessionId, state.hwid, "Stable");
+      if (!authRes || !authRes.authorized) {
+        setProgress(0, `Access Denied: ${authRes?.message || "Not authorized"}`);
+        state.launching = false;
+        startBtn.disabled = false;
+        return;
+      }
+    } catch (_) {}
   }
 
   state.launching = true;
@@ -644,10 +717,14 @@ function bindEvents() {
     try {
       const res = await window.LoaderAPI.verifyKey(key);
       state.keyValid = Boolean(res?.valid);
+      state.sessionId = res?.session_id || null;
       saveState();
       if (!state.keyValid) box.classList.add("is-error");
       box.textContent = `${state.keyValid ? "✓" : "✕"} ${res?.plan || ""} — ${res?.message || ""}`;
       box.classList.remove("hidden");
+      if (state.keyValid && state.sessionId) {
+        startHeartbeatLoop();
+      }
     } catch (err) {
       box.classList.add("is-error");
       box.textContent = `✕ ${String(err)}`;
@@ -696,6 +773,9 @@ async function init() {
   applyThemeVars();
   applyTranslations();
   bindEvents();
+  if (state.keyValid && state.sessionId) {
+    startHeartbeatLoop();
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);

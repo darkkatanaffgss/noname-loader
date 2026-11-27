@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noname Loader — Admin Panel & Traffic Monitor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+      background: #090b10;
+      color: #f1f3f7;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+    .head {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+      padding: 16px 20px; border-radius: 16px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .badge {
+      width: 38px; height: 38px; border-radius: 10px; background: #161a24; border: 1px solid rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #60a5fa;
+    }
+    .auth-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    input, select {
+      height: 36px; padding: 0 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.1);
+      background: #0d1017; color: #fff; font-family: inherit; font-size: 13px; outline: none;
+    }
+    input:focus, select:focus { border-color: #3b82f6; }
+    button {
+      height: 36px; padding: 0 14px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06); color: #fff; font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button.primary { background: #2563eb; border-color: rgba(59,130,246,0.5); }
+    button.primary:hover { background: #1d4ed8; }
+    button.danger { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.35); color: #fca5a5; }
+    button.danger:hover { background: rgba(239,68,68,0.25); }
+    button.active-tab { background: rgba(59,130,246,0.22); border-color: rgba(59,130,246,0.55); color: #93c5fd; }
+    button:hover { opacity: 0.95; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+    .stat-card, .panel {
+      padding: 16px 18px; border-radius: 14px; background: rgba(255,255,255,0.022); border: 1px solid rgba(255,255,255,0.07);
+    }
+    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #7c8494; margin-bottom: 6px; }
+    .stat-val { font-size: 24px; font-weight: 700; }
+    .tabs-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .tabs-left, .tabs-right { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .panel h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .checks { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; font-size: 13px; color: #b4bac6; }
+    .checks label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .checks input { width: auto; height: auto; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.055); }
+    th { color: #7c8494; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    code { font-family: Consolas, monospace; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 5px; font-size: 11.5px; }
+    .pill { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; background: rgba(59,130,246,0.18); color: #93c5fd; display: inline-block; }
+    .pill.red { background: rgba(239,68,68,0.18); color: #fca5a5; }
+    .pill.green { background: rgba(34,197,94,0.18); color: #86efac; }
+    .pill.amber { background: rgba(245,158,11,0.18); color: #fcd34d; }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .actions button { height: 28px; padding: 0 10px; font-size: 11.5px; border-radius: 7px; }
+    .hidden { display: none !important; }
+    .err { color: #f87171; font-size: 13px; padding: 8px 12px; background: rgba(239,68,68,0.08); border-radius: 8px; border: 1px solid rgba(239,68,68,0.2); }
+    .subview { display: none; flex-direction: column; gap: 14px; }
+    .subview.active { display: flex; }
+    .inline-ban { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div class="brand">
+        <div class="badge">NN</div>
+        <div>
+          <div style="font-weight:600;font-size:16px;">Noname Loader — Admin & Security Console</div>
+          <div style="font-size:12px;color:#7c8494;">HMAC Challenge-Response • HttpOnly + CSRF • SQLite Engine</div>
+        </div>
+      </div>
+      <div class="auth-row">
+        <input type="password" id="adminSecret" placeholder="Enter ADMIN_SECRET from api-server/.env" style="width:280px;" />
+        <button type="button" class="primary" id="connectBtn">Sign In</button>
+        <button type="button" class="hidden" id="autoRefreshBtn">Live: ON (5s)</button>
+        <button type="button" class="hidden" id="exportJsonBtn">Export JSON</button>
+        <button type="button" class="danger hidden" id="logoutAdminBtn">Sign Out</button>
+      </div>
+    </div>
+    <div id="errBox" class="err hidden"></div>
+
+    <div id="dashboard" style="display:none;flex-direction:column;gap:16px;">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total / Active Keys</div><div class="stat-val" id="sKeys">0 / 0</div></div>
+        <div class="stat-card"><div class="stat-label">Active Sessions</div><div class="stat-val" id="sSessions">0</div></div>
+        <div class="stat-card"><div class="stat-label">Total Launches</div><div class="stat-val" id="sLaunches">0</div></div>
+        <div class="stat-card"><div class="stat-label">Traffic (RPM)</div><div class="stat-val" id="sRpm">0</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Latency</div><div class="stat-val" id="sLatency">0 ms</div></div>
+        <div class="stat-card"><div class="stat-label">Security Alerts / Bans</div><div class="stat-val" id="sAlerts" style="color:#f87171;">0 / 0</div></div>
+      </div>
+
+      <div class="tabs-bar">
+        <div class="tabs-left">
+          <button type="button" class="admin-tab active-tab" data-sub="keys">Licenses & Creation</button>
+          <button type="button" class="admin-tab" data-sub="traffic">Traffic & Connections</button>
+          <button type="button" class="admin-tab" data-sub="sessions">Active Sessions & IP Bans</button>
+          <button type="button" class="admin-tab" data-sub="events">Security & Event Logs</button>
+        </div>
+        <div class="tabs-right">
+          <button type="button" id="refreshNowBtn">Refresh</button>
+          <button type="button" class="danger" id="clearLogsBtn">Clear Logs</button>
+        </div>
+      </div>
+
+      <!-- TAB 1: LICENSES -->
+      <div class="subview active" id="sub-keys">
+        <div class="panel">
+          <h2>Issue New License Key</h2>
+          <div class="form-grid">
+            <input type="text" id="newUser" placeholder="Customer / Username (e.g. Player1)" />
+            <select id="newTier">
+              <option value="Pro">Pro</option>
+              <option value="Enterprise">Enterprise</option>
+              <option value="Standard">Standard</option>
+            </select>
+            <select id="newDays">
+              <option value="7">7 Days</option>
+              <option value="30" selected>30 Days</option>
+              <option value="90">90 Days</option>
+              <option value="lifetime">Lifetime</option>
+            </select>
+          </div>
+          <div class="checks">
+            <span>Games Authorized:</span>
+            <label><input type="checkbox" class="prod-chk" value="cs2" checked /> Counter-Strike 2</label>
+            <label><input type="checkbox" class="prod-chk" value="minecraft" checked /> Minecraft</label>
+            <span style="margin-left:14px;">Branches:</span>
+            <label><input type="checkbox" class="br-chk" value="Stable" checked /> Stable</label>
+            <label><input type="checkbox" class="br-chk" value="Beta" checked /> Beta</label>
+            <label><input type="checkbox" class="br-chk" value="Nightly" checked /> Nightly</label>
+          </div>
+          <button type="button" class="primary" id="createKeyBtn">Generate License Key</button>
+        </div>
+
+        <div class="panel">
+          <h2>Issued Licenses</h2>
+          <table>
+            <thead>
+              <tr><th>Key</th><th>User</th><th>Tier</th><th>Bound HWID</th><th>Expires</th><th>Launches</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="licensesBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 2: TRAFFIC -->
+      <div class="subview" id="sub-traffic">
+        <div class="panel">
+          <h2>
+            <span>Live Traffic Monitor</span>
+            <select id="trafficFilter" style="font-weight:400;font-size:12px;height:28px;">
+              <option value="all">All Traffic</option>
+              <option value="2xx">Successful (2xx)</option>
+              <option value="4xx">Blocked / Errors (4xx/5xx)</option>
+            </select>
+          </h2>
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Method</th><th>Endpoint</th><th>Client IP</th><th>Status</th><th>Latency</th><th>User-Agent</th></tr>
+            </thead>
+            <tbody id="trafficBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 3: SESSIONS & IP BANS -->
+      <div class="subview" id="sub-sessions">
+        <div class="panel">
+          <h2>Active Authenticated Sessions</h2>
+          <table>
+            <thead>
+              <tr><th>Session ID</th><th>Key</th><th>User</th><th>Client HWID</th><th>Client IP</th><th>Expires In</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="sessionsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <h2>IP Firewall & Banned Addresses</h2>
+          <div class="inline-ban">
+            <input type="text" id="banIpInput" placeholder="IP Address (e.g. 192.168.1.50)" />
+            <input type="text" id="banReasonInput" placeholder="Reason (e.g. Replay attack attempt)" style="flex:1;" />
+            <button type="button" class="danger" id="banIpBtn">Ban IP</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>IP Address</th><th>Reason</th><th>Banned At</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="bannedBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 4: SECURITY EVENTS -->
+      <div class="subview" id="sub-events">
+        <div class="panel">
+          <h2>Security & Anti-Tamper Audit Log</h2>
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Event Type</th><th>License Key</th><th>HWID</th><th>Client IP</th><th>Details</th></tr>
+            </thead>
+            <tbody id="eventsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>

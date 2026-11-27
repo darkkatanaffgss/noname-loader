@@ -7,16 +7,19 @@
 window.AETHER_CONFIG = {
   brandTitle: "Noname",
   brandShort: "NN",
-  version: "v2.4",
+  version: "v2.5",
   defaultUserName: "User",
   defaultLang: "ru", // "ru" | "en" | "uk"
 
-  // Developer API endpoints (leave empty for offline/template mode)
+  // Backend API endpoints (Noname License Server & SQLite)
   api: {
-    statusUrl: "",     // e.g. "https://api.yoursite.com/v1/status"
-    verifyKeyUrl: "",  // e.g. "https://api.yoursite.com/v1/verify-key"
-    authToken: "",     // optional Bearer token for status/download requests
-    requireKeyBeforeLaunch: false,
+    statusUrl: "http://127.0.0.1:3840/api/v1/health",
+    verifyKeyUrl: "http://127.0.0.1:3840/api/v1/auth/verify",
+    heartbeatUrl: "http://127.0.0.1:3840/api/v1/auth/heartbeat",
+    authorizeUrl: "http://127.0.0.1:3840/api/v1/software/authorize",
+    telemetryUrl: "http://127.0.0.1:3840/api/v1/telemetry",
+    authToken: "",
+    requireKeyBeforeLaunch: true,
   },
 
   // Games displayed on the Home screen

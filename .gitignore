@@ -3,3 +3,5 @@
 /builds/
 gen/
 *.pdb
+api-server/.env
+api-server/*.sqlite*
